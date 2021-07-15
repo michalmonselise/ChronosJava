@@ -122,11 +122,13 @@ public class Benchmark {
                 gaps.add(getDate(prevEdge) - getDate(e));
             }
         }
+        //System.out.println(gaps);
         return (stdDouble(gaps) - meanDouble(gaps)) / (stdDouble(gaps) + meanDouble(gaps));
     }
 
     public static Double getDate(Edge e) {
-        return e.value("date");
+        //System.out.println(e.value("date").getClass().getName());
+        return Double.valueOf(e.value("date"));
     }
 
 }
