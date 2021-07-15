@@ -68,10 +68,10 @@ public class Benchmark {
     }
 
 
-    public static Double meanInt(List<Integer> values) {
+    public static Double meanDouble(List<Double> values) {
         double num = 0.0;
         double denom = 0.0;
-        for (Integer i: values) {
+        for (Double i: values) {
             num += i;
             denom += 1.0;
         }
@@ -83,11 +83,11 @@ public class Benchmark {
         }
     }
 
-    public static Double stdInt(List<Integer> values) {
+    public static Double stdDouble(List<Double> values) {
         double num = 0.0;
         double denom = 0.0;
-        double mean = meanInt(values);
-        for (Integer i: values) {
+        double mean = meanDouble(values);
+        for (Double i: values) {
             num += (i - mean) * (i - mean);
             denom += 1.0;
         }
@@ -100,7 +100,7 @@ public class Benchmark {
     }
 
     public static Double burstiness(ChronoGraph graph, Vertex src, Vertex dst, List<Double> dateList) {
-        List<Integer> gaps = new ArrayList<Integer>();
+        List<Double> gaps = new ArrayList<Double>();
         int counter = 0;
         //for (Double i: dateList) {
         List<Edge> edges = graph.traversal().E().has("dst", dst).has("src", src).toList();
@@ -119,14 +119,14 @@ public class Benchmark {
         if (edges.size() > 0) {
             Edge prevEdge = edges.get(0);
             for (Edge e : edges) {
-                gaps.add(prevEdge - e);
+                gaps.add(getDate(prevEdge) - getDate(e));
             }
         }
-        return (stdInt(gaps) - meanInt(gaps)) / (stdInt(gaps) + meanInt(gaps));
+        return (stdDouble(gaps) - meanDouble(gaps)) / (stdDouble(gaps) + meanDouble(gaps));
     }
 
-    public static Double getDate(Vertex v) {
-        
+    public static Double getDate(Edge e) {
+        return e.value("date");
     }
 
 }
