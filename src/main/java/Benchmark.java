@@ -2,12 +2,10 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.chronos.chronograph.api.structure.ChronoGraph;
-import org.apache.commons.math3.stat.descriptive.*;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,46 +17,48 @@ public class Benchmark {
 
     public static void main(String[] args) throws IOException {
         ChronoGraph graph = ChronoGraph.FACTORY.create().inMemoryGraph().build();
-        List<String> dateList = new ArrayList<String>();
+        Set<Double> dateSet = new HashSet<>();
         Set<List> edgeSet;
-        try (ChronoGraph txGraph = graph.tx().createThreadedTx()) {
-            List<Vertex> vertexList = new ArrayList<>();
-            for (int i = 1; i <= 1899; i++) {
-                vertexList.add(txGraph.addVertex(
-                        T.id, Integer.toString(i)
-                ));
-            }
-
-
-            List<String[]> rowList = new ArrayList<String[]>();
-
-            edgeSet = new HashSet<>();
-            int vertexID = 0;
-            try (BufferedReader br = new BufferedReader(new FileReader("data/college_seq.csv"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] lineItems = line.split(",");
-                    Vertex vertexFrom = vertexList.get(Integer.parseInt(lineItems[0]) - 1);
-                    Vertex vertexTo = vertexList.get(Integer.parseInt(lineItems[1]) - 1);
-                    vertexFrom.addEdge(Integer.toString(vertexID), vertexFrom, "src", vertexFrom, "dst", vertexTo, "date", lineItems[2]);
-                    dateList.add(lineItems[2]);
-                    edgeSet.add(Arrays.asList(vertexFrom, vertexTo));
-                    vertexID += 1;
-
-                }
-            }
-            txGraph.tx().commit();
+        List<Vertex> vertexList = new ArrayList<>();
+        for (int i = 1; i <= 1899; i++) {
+            vertexList.add(graph.addVertex(
+                    T.id, Integer.toString(i)
+            ));
         }
+
+
+        List<String[]> rowList = new ArrayList<String[]>();
+
+        edgeSet = new HashSet<>();
+        int vertexID = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader("data/college_seq.csv"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] lineItems = line.split(",");
+                Vertex vertexFrom = vertexList.get(Integer.parseInt(lineItems[0]) - 1);
+                Vertex vertexTo = vertexList.get(Integer.parseInt(lineItems[1]) - 1);
+                vertexFrom.addEdge(Integer.toString(vertexID), vertexFrom, "src", vertexFrom, "dst", vertexTo, "date", lineItems[2]);
+                dateSet.add(Double.valueOf(lineItems[2]));
+                List<Vertex> vertices = Arrays.asList(vertexFrom, vertexTo);
+                edgeSet.add(vertices);
+                vertexID += 1;
+
+            }
+        }
+
+        ArrayList<Double> dateList = new ArrayList<>(dateSet);
         Collections.sort(dateList);
 
         System.out.println("Graph: " + graph);
         System.out.println("Number of vertices: " + graph.traversal().V().toList().size());
         System.out.println("Number of edges: " + graph.traversal().E().toList().size());
+        System.out.println("Dates: " + dateList);
         long startTime = System.nanoTime();
 
 
-         for (List l : edgeSet) {
-        burstiness(graph, l.get(0).toString(), l.get(1).toString(), dateList);
+         for (List<Vertex> l : edgeSet) {
+            burstiness(graph, l.get(0), l.get(1), dateList);
+            //System.out.println(l.get(0).toString() + " " + l.get(1).toString());
         }
         long endTime = System.nanoTime();
         long duration = (endTime - startTime);
@@ -99,22 +99,34 @@ public class Benchmark {
         }
     }
 
-    public static Double burstiness(ChronoGraph graph, String src, String dst, List<String> dateList) {
+    public static Double burstiness(ChronoGraph graph, Vertex src, Vertex dst, List<Double> dateList) {
         List<Integer> gaps = new ArrayList<Integer>();
         int counter = 0;
-        for (String i: dateList) {
-            List<Edge> edges = graph.traversal().E().has("date", i).has("dst", dst).has("src", src).toList();
-            int isEdge = edges.size();
-            if (isEdge == 0) {
-                counter = counter + 1;
-            }
-        else {
-            gaps.add(counter);
-            counter = 0;
+        //for (Double i: dateList) {
+        List<Edge> edges = graph.traversal().E().has("dst", dst).has("src", src).toList();
+            //Integer isEdge = edges.size();
+            //System.out.println("Number of edges: "+ isEdge);
+            //System.out.println("date :" + i);
+            //if (isEdge == 0) {
+            //    counter = counter + 1;
+            //}
+        //else {
+        //    gaps.add(counter);
+        //    counter = 0;
+        //    }
+
+        //}
+        if (edges.size() > 0) {
+            Edge prevEdge = edges.get(0);
+            for (Edge e : edges) {
+                gaps.add(prevEdge - e);
             }
         }
         return (stdInt(gaps) - meanInt(gaps)) / (stdInt(gaps) + meanInt(gaps));
     }
 
+    public static Double getDate(Vertex v) {
+        
+    }
 
 }
